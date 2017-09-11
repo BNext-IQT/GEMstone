@@ -1,10 +1,12 @@
 """Queries the database for specific genes."""
 
 import sys
+import time
+
 from phe import paillier
 
 from p_bloom_filter import encode
-from p_database import search, get_gene
+from p_database import search, get_gene, Gene
 from optimize_invert import invert
 
 paillier.invert = invert
@@ -18,6 +20,8 @@ def main(f=None):
     Args:
         f: A text file containing queries. Each query should be on its own line.
     """
+    start = time.time()
+    print('Start time: ' + str(start) + '\n')
 
     print('generating key pair...')
     public_key, private_key = paillier.generate_paillier_keypair()
@@ -35,11 +39,15 @@ def main(f=None):
 
         for query_sequence in queries:
             if query_sequence:
+                q_start = time.time()
                 print("Query: ", query_sequence.upper(), "\n")
                 gene, iou = query(query_sequence, public_key, private_key)
                 print("Best IOU: ", iou, "\n")
                 print("Sequence: ", gene.sequence)
                 print("---------------------------------------------\n")
+                q_end = time.time()
+                q_elapsed = q_end - q_start
+                print('Query run time: ' + str(q_elapsed) + '\n')
     else:
         print("Enter query: ")
         for query_sequence in sys.stdin:
@@ -47,6 +55,11 @@ def main(f=None):
             print("Best IOU: ", iou)
             print("Sequence: ", gene.sequence, "\n")
             print("Enter query: ")
+
+    end = time.time()
+    print('End time: ' + str(end))
+    elapsed = end - start
+    print('Time elapsed: ' + str(elapsed))
 
 
 def query(query, public_key, private_key):
@@ -104,7 +117,7 @@ def iou(intersection, data_mag, query_mag):
     Returns:
         The IOU for the two genes.
     """
-    union = data_mag + query_mag - intersection
+    union = (data_mag + query_mag) - intersection
     return intersection/union
 
 def magnitude(v):

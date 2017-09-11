@@ -40,7 +40,7 @@ def encode(gene, size=SIZE, k=K, h=H):
         k_hash = (h(k_mer) + HASH_MAX) % size   # Make hash positive and within
                                                 # size of filter.
 
-        # Set entry the bloom filter corresponding to the hashed k-mer to one.
+        # Set entry in the bloom filter corresponding to the hashed k-mer to one.
         bf[k_hash] = 1
 
     return bf

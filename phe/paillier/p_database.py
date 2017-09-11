@@ -7,9 +7,10 @@ import json
 from collections import defaultdict, namedtuple
 import time
 import sys
+import numpy as np
+import pickle as p
 
 from phe import paillier
-
 from p_bloom_filter import encode
 
 # Type of sequence used in database
@@ -35,14 +36,19 @@ def search(query):
         gene and query and the magnitude of the gene.
     """
     global data
+    global Gene
 
     # Encode data
     if data:
         print("data already encoded")
     else:
         print("endcoding data...")
+        #print("Loading data...")
         encode_data()
+
+        #data = p.load(open('../encoded_addgene.p', 'rb'))
         print("...database complete")
+        #print("...database loaded")
 
     scores = {}
 
@@ -63,11 +69,14 @@ def dotproduct(v1, v2):
     Returns:
         The dot product of the two vectors.
     """
+
     dot = 0
     for i in range(0, len(v1)):
         if v1[i] == 1:
             dot += v2[i]
+
     return dot
+
 
 def magnitude(v):
     """Finds the magnitude of a binary vector (array).
@@ -124,7 +133,7 @@ def encode_data():
         name = k['name']
         if k['pi']:
             pi = k['pi'][0]
-            if k['sequences']["public_addgene_full_sequences"]:
+            if k['sequences'][SEQUENCE_TYPE]:
                 sequence = k['sequences'][SEQUENCE_TYPE][0]
                 bf = encode(sequence)
                 gene = Gene(name = name, pi = pi, sequence = sequence, bloom = bf)
