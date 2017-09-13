@@ -16,4 +16,4 @@ RUN pip install phe
 ADD . /bioWork
 WORKDIR /bioWork
 
-RUN wget "https://www.dropbox.com/s/ehzm2y9gljq0ivr/addgene-plasmids-sequences.json?dl=0"
+RUN wget "https://www.dropbox.com/s/ehzm2y9gljq0ivr/addgene-plasmids-sequences.json?dl=0" -P data/

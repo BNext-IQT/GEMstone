@@ -6,7 +6,7 @@ the data using IOU comparisons.
 import json
 from collections import defaultdict, namedtuple
 import time
-import sys
+import sys, os
 import numpy as np
 import pickle as p
 
@@ -113,9 +113,12 @@ def encode_data():
     global data
     # Reads in data from JSON file
     try:
-        with open("../addgene-plasmids-sequences.json") as data_file:
+	gene_data = os.path.join('../data', 'addgene-plasmids-sequences.json')
+        
+	with open(gene_data) as data_file:
            raw_data = json.load(data_file)
         data_file.close()
+    
     except FileNotFoundError:
         print("\nFileNotFoundError: [Errno 2] No such file or directory: ",
             "'addgene-plasmids-sequences.json'\n")
