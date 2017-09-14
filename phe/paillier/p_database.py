@@ -112,15 +112,15 @@ def encode_data():
     """
     global data
     # Reads in data from JSON file
+
     try:
-	   gene_data = os.path.join('../data', 'addgene-plasmids-sequences.json')
-	   with open(gene_data) as data_file:
-           raw_data = json.load(data_file)
-       data_file.close()
+        with open('../addgene-plasmids-sequences.json?dl=0') as data_file:
+            raw_data = json.load(data_file)
+        data_file.close()
 
     except FileNotFoundError:
         print("\nFileNotFoundError: [Errno 2] No such file or directory: ",
-            "'addgene-plasmids-sequences.json'\n")
+            "'addgene-plasmids-sequences.json'")
         print("File should be in current folder. Encode failed.")
         sys.exit(2)
 
