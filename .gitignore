@@ -1,3 +1,5 @@
 phe/data/*
 phe/addgene-plasmids-sequences.json?dl=0
+phe/addgene-plasmids-sequences.json
+phe/pallier/prepared_encoded_database.p
 phe/pallier/__pycache__/
