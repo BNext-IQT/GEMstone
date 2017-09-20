@@ -3,14 +3,20 @@
 import sys
 import time
 
+from joblib import Parallel, delayed
 from phe import paillier
-
 from p_bloom_filter import encode
 from p_database import search, get_gene, Gene
 from optimize_invert import invert
 
 paillier.invert = invert
 
+num_cores = 32 # Number of cores for parellel processing
+
+
+####################
+#
+####################
 def main(f=None):
     """Reads in queries from a file and searches for them. If no file present,
     reads in quieries from the standard input and searches for them.
@@ -27,6 +33,7 @@ def main(f=None):
     public_key, private_key = paillier.generate_paillier_keypair()
     print('...key pair complete\n')
 
+    
     if f:
         try:
             with open(f, 'r') as queries_file:
@@ -37,6 +44,7 @@ def main(f=None):
             print("Requires a text file with the queries.")
             sys.exit(2)
 
+            
         for query_sequence in queries:
             if query_sequence:
                 q_start = time.time()
@@ -56,12 +64,16 @@ def main(f=None):
             print("Sequence: ", gene.sequence, "\n")
             print("Enter query: ")
 
+            
     end = time.time()
     print('End time: ' + str(end))
     elapsed = end - start
     print('Time elapsed: ' + str(elapsed))
 
 
+####################
+#
+####################
 def query(query, public_key, private_key):
     """Encodes a query and searches for it in the data base.
 
@@ -75,6 +87,7 @@ def query(query, public_key, private_key):
 
         The IOU for the 'best match' and the query.
     """
+    global num_cores
 
     print("encoding query...")
     query = encode(query)
@@ -83,10 +96,14 @@ def query(query, public_key, private_key):
     query_mag = magnitude(query)
 
     print("encrypting query...")
-    query = [public_key.encrypt(x) for x in query]
+    #query = [public_key.encrypt(x) for x in query]
+    query = Parallel(n_jobs=num_cores)(delayed(public_key.encrypt)(x) for x in query)
+    
     print("...encrypt complete")
     print("generating scores...")
+    
     scores = search(query)
+    
     print("...scores complete")
 
     print("performing search...")
@@ -106,6 +123,10 @@ def query(query, public_key, private_key):
 
     return gene, max_iou
 
+
+####################
+#
+####################
 def iou(intersection, data_mag, query_mag):
     """Finds the IOU for two bloom filters.
 
@@ -120,6 +141,10 @@ def iou(intersection, data_mag, query_mag):
     union = (data_mag + query_mag) - intersection
     return intersection/union
 
+
+####################
+#
+####################
 def magnitude(v):
     """Finds the magnitude of a binary vector (array).
 
@@ -129,12 +154,16 @@ def magnitude(v):
     Returns:
         The magnitude of the vector.
     """
-    sum = 0
-    for x in v:
-        sum += x
-    return sum
+    #sum = 0
+    #for x in v:
+    #    sum += x
+    #return sum
+    return sum(v)
 
 
+####################
+# Main
+####################
 if __name__ == '__main__':
     if(len(sys.argv) > 1):
         main(sys.argv[1])

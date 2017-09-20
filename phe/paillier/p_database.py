@@ -9,6 +9,7 @@ import time
 import sys, os
 import numpy as np
 import pickle as p
+from joblib import Parallel, delayed
 
 from phe import paillier
 from p_bloom_filter import encode
@@ -19,10 +20,16 @@ SEQUENCE_TYPE = "public_addgene_full_sequences"
 # Database of genes
 data = None
 
+num_cores = 32 # Number of cores for parellel processing
+
 # Gene data structure holding the name, principle investigator, a partial
 # sequence and the corresponding bloom filter of a gene.
 Gene = namedtuple("Gene", "name, pi, sequence, bloom")
 
+
+####################
+#
+####################
 def search(query):
     """Searches the database for the 'best match' to the given query. Returns
     relevent information to find the IOU scores of all the genes in the database
@@ -37,27 +44,38 @@ def search(query):
     """
     global data
     global Gene
+    global num_cores
 
     # Encode data
     if data:
         print("data already encoded")
     else:
         print("endcoding data...")
-        #print("Loading data...")
         encode_data()
 
-        #data = p.load(open('../encoded_addgene.p', 'rb'))
         print("...database complete")
-        #print("...database loaded")
 
     scores = {}
+    scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_) for id_ in data)
+    
+    #for id_ in data:
+    #    d = data[id_].bloom
+    #    scores[id_]=(dotproduct(d, query), magnitude(d))
 
-    for id_ in data:
-        d = data[id_].bloom
-        scores[id_]=(dotproduct(d, query), magnitude(d))
+    return scores[0]
 
-    return scores
 
+####################
+#
+####################
+def gen_scores(id_):
+    d = data[id_].bloom
+    return (dotproduct(d, query), magnitude(d))
+    
+
+####################
+#
+####################
 def dotproduct(v1, v2):
     """Finds the dot product of two vectors (arrays). The first vector must
     be binary.
@@ -78,6 +96,9 @@ def dotproduct(v1, v2):
     return dot
 
 
+####################
+#
+####################
 def magnitude(v):
     """Finds the magnitude of a binary vector (array).
 
@@ -87,11 +108,16 @@ def magnitude(v):
     Returns:
         The magnitude of the vector.
     """
-    sum = 0
-    for x in v:
-        sum += x
-    return sum
+    #sum = 0
+    #for x in v:
+    #    sum += x
+    #return sum
+    return sum(v)
 
+
+####################
+#
+####################
 def get_gene(id_):
     """Returns gene with given ID.
 
@@ -105,6 +131,10 @@ def get_gene(id_):
         return data[id_]
     return None
 
+
+####################
+#
+####################
 def encode_data():
     """Reads in the addgene-plasmids-sequences data from a json file and stores
     the important information in an internal data structure. Also genenerates
@@ -114,7 +144,7 @@ def encode_data():
     # Reads in data from JSON file
 
     try:
-        with open('../addgene-plasmids-sequences.json?dl=0') as data_file:
+        with open('../addgene-plasmids-sequences.json') as data_file:
             raw_data = json.load(data_file)
         data_file.close()
 
@@ -141,3 +171,5 @@ def encode_data():
                 gene = Gene(name = name, pi = pi, sequence = sequence, bloom = bf)
                 data[id_] = gene
                 id_ += 1
+
+                
