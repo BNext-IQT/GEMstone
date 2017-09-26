@@ -6,10 +6,10 @@ from array import array
 from collections import defaultdict
 
 #BLOOM FILTER DEFAULTS
-K = 16
+K = 1000
 H = hash
 HASH_MAX = sys.maxsize + 1
-SIZE = 12000
+SIZE = 30000
 
 def encode(gene, size=SIZE, k=K, h=H):
     """Creates a bloom filter. Used to encode a genetic sequence.

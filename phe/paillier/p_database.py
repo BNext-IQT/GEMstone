@@ -10,6 +10,7 @@ import sys, os
 import numpy as np
 import pickle as p
 from joblib import Parallel, delayed
+from Bio import SeqIO
 
 from phe import paillier
 from p_bloom_filter import encode
@@ -21,6 +22,7 @@ SEQUENCE_TYPE = "public_addgene_full_sequences"
 data = None
 
 num_cores = 32 # Number of cores for parellel processing
+data_directory = '/local_data/atitus/data/bacteria/'
 
 # Gene data structure holding the name, principle investigator, a partial
 # sequence and the corresponding bloom filter of a gene.
@@ -42,37 +44,41 @@ def search(query):
         A dictionary where each ID maps to the encrypted intersection of the
         gene and query and the magnitude of the gene.
     """
-    global data
-    global Gene
+    #global data
+    #global Gene
+    
     global num_cores
-
-    # Encode data
-    if data:
-        print("data already encoded")
-    else:
-        print("endcoding data...")
-        encode_data()
-
-        print("...database complete")
-
-    scores = {}
-    scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_) for id_ in data)
+    global data_directory
     
-    #for id_ in data:
-    #    d = data[id_].bloom
-    #    scores[id_]=(dotproduct(d, query), magnitude(d))
+    data = os.listdir(data_directory)
 
-    return scores[0]
+    scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
+    
+    return scores
 
 
 ####################
-#
+# Calculate the dot product and magnitude of result based on a sequence ID
 ####################
-def gen_scores(id_):
-    d = data[id_].bloom
-    return (dotproduct(d, query), magnitude(d))
+def gen_scores(id_, query):
+    global data_directory
     
+    seq_file = os.path.join(data_directory, id_)
+    
+    #entry_seq = list(SeqIO.parse(seq_file, "fasta"))
+    #entry_seq = str(entry_seq[0].seq)
+    
+    entry_seq = ''
 
+    with open(seq_file, "r") as handle:
+        for record in SeqIO.parse(handle, "fasta"):
+            entry_seq += str(record.seq)
+    
+    entry_bloom = encode(entry_seq)
+    
+    return (dotproduct(entry_bloom, query), magnitude(entry_bloom))
+    
+    
 ####################
 #
 ####################
@@ -88,16 +94,16 @@ def dotproduct(v1, v2):
         The dot product of the two vectors.
     """
 
-    dot = 0
-    for i in range(0, len(v1)):
-        if v1[i] == 1:
-            dot += v2[i]
-
+    #dot = 0
+    #for i in range(0, len(v1)):
+    #    if v1[i] == 1:
+    #        dot += v2[i]
+    dot = sum([v2[i] for i,_ in enumerate(v1) if v1[i] == 1])
     return dot
 
 
 ####################
-#
+# Calculate the magnitude of a binary vector
 ####################
 def magnitude(v):
     """Finds the magnitude of a binary vector (array).
@@ -127,6 +133,8 @@ def get_gene(id_):
     Returns:
         The corresponding gene.
     """
+    global data
+    
     if data:
         return data[id_]
     return None
@@ -155,7 +163,10 @@ def encode_data():
         sys.exit(2)
 
     plasmids = raw_data['plasmids']
-
+    
+    #plasmids = plasmids[:100]
+    
+    
     # Initialization of internal data structures for set.
     data = defaultdict(Gene)
     id_ = 0
