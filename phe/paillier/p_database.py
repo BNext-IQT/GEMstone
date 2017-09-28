@@ -11,28 +11,16 @@ import numpy as np
 import pickle as p
 from joblib import Parallel, delayed
 from Bio import SeqIO
-
 from phe import paillier
 from p_bloom_filter import encode
 
-# Type of sequence used in database
-SEQUENCE_TYPE = "public_addgene_full_sequences"
-
-# Database of genes
-data = None
-
-num_cores = 32 # Number of cores for parellel processing
-data_directory = '/local_data/atitus/data/bacteria/'
-
-# Gene data structure holding the name, principle investigator, a partial
-# sequence and the corresponding bloom filter of a gene.
-Gene = namedtuple("Gene", "name, pi, sequence, bloom")
-
+data_directory = None
+num_cores = 48 # Number of cores for parellel processing
 
 ####################
-#
+# Search for a query in a "database"
 ####################
-def search(query):
+def search(query, dev, data_dir):
     """Searches the database for the 'best match' to the given query. Returns
     relevent information to find the IOU scores of all the genes in the database
     in order to determine the 'best match'
@@ -44,14 +32,17 @@ def search(query):
         A dictionary where each ID maps to the encrypted intersection of the
         gene and query and the magnitude of the gene.
     """
-    #global data
-    #global Gene
-    
     global num_cores
     global data_directory
     
+    data_directory = data_dir
+        
     data = os.listdir(data_directory)
+    print('\nFound %s entries in database\n' % str(len(data)))
 
+    if dev:
+        data = data[0]
+    
     scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
     
     return scores
@@ -65,9 +56,6 @@ def gen_scores(id_, query):
     
     seq_file = os.path.join(data_directory, id_)
     
-    #entry_seq = list(SeqIO.parse(seq_file, "fasta"))
-    #entry_seq = str(entry_seq[0].seq)
-    
     entry_seq = ''
 
     with open(seq_file, "r") as handle:
@@ -76,11 +64,16 @@ def gen_scores(id_, query):
     
     entry_bloom = encode(entry_seq)
     
-    return (dotproduct(entry_bloom, query), magnitude(entry_bloom))
+    if len(entry_seq) < 5000:
+        seq_code = entry_seq
+    else:
+        seq_code = entry_seq[:1000]
+    
+    return (dotproduct(entry_bloom, query), magnitude(entry_bloom), seq_code)
     
     
 ####################
-#
+# Calculate the dot product between a binary vector and an encrypted vector
 ####################
 def dotproduct(v1, v2):
     """Finds the dot product of two vectors (arrays). The first vector must
@@ -94,10 +87,6 @@ def dotproduct(v1, v2):
         The dot product of the two vectors.
     """
 
-    #dot = 0
-    #for i in range(0, len(v1)):
-    #    if v1[i] == 1:
-    #        dot += v2[i]
     dot = sum([v2[i] for i,_ in enumerate(v1) if v1[i] == 1])
     return dot
 
@@ -114,73 +103,5 @@ def magnitude(v):
     Returns:
         The magnitude of the vector.
     """
-    #sum = 0
-    #for x in v:
-    #    sum += x
-    #return sum
-    return sum(v)
-
-
-####################
-#
-####################
-def get_gene(id_):
-    """Returns gene with given ID.
-
-    Args:
-        id_: ID corresponding to desired gene.
-
-    Returns:
-        The corresponding gene.
-    """
-    global data
     
-    if data:
-        return data[id_]
-    return None
-
-
-####################
-#
-####################
-def encode_data():
-    """Reads in the addgene-plasmids-sequences data from a json file and stores
-    the important information in an internal data structure. Also genenerates
-    and stores the bloom filter for each gene in the database.
-    """
-    global data
-    # Reads in data from JSON file
-
-    try:
-        with open('../addgene-plasmids-sequences.json') as data_file:
-            raw_data = json.load(data_file)
-        data_file.close()
-
-    except FileNotFoundError:
-        print("\nFileNotFoundError: [Errno 2] No such file or directory: ",
-            "'addgene-plasmids-sequences.json'")
-        print("File should be in current folder. Encode failed.")
-        sys.exit(2)
-
-    plasmids = raw_data['plasmids']
-    
-    #plasmids = plasmids[:100]
-    
-    
-    # Initialization of internal data structures for set.
-    data = defaultdict(Gene)
-    id_ = 0
-
-    # Read in and organize important fields of data from the raw data.
-    for k in plasmids:
-        name = k['name']
-        if k['pi']:
-            pi = k['pi'][0]
-            if k['sequences'][SEQUENCE_TYPE]:
-                sequence = k['sequences'][SEQUENCE_TYPE][0]
-                bf = encode(sequence)
-                gene = Gene(name = name, pi = pi, sequence = sequence, bloom = bf)
-                data[id_] = gene
-                id_ += 1
-
-                
+    return sum(v)                

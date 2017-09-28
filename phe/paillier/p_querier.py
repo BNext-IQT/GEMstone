@@ -2,23 +2,21 @@
 
 import sys
 import time
-
 from joblib import Parallel, delayed
 from phe import paillier
 from p_bloom_filter import encode
-from p_database import search, get_gene, Gene, magnitude
+from p_database import search, magnitude
 from optimize_invert import invert
 from Bio import SeqIO
 
 paillier.invert = invert
-
-num_cores = 32 # Number of cores for parellel processing
+num_cores = 48 # Number of cores for parellel processing
 
 
 ####################
 # Main function to run pipeline
 ####################
-def main(f=None):
+def main(f, d, dev = False):
     """Reads in queries from a file and searches for them. If no file present,
     reads in quieries from the standard input and searches for them.
 
@@ -26,78 +24,60 @@ def main(f=None):
 
     Args:
         f: A text file containing queries. Each query should be on its own line.
+        d: A path do a directory with FASTA files to act as the database to search
+        dev: a boolean indicator, if True, runs the pipeline on only the first 
+             entry in a data set rather than the whole set. 
     """
     start = time.time()
+    
     print('\nStart time: ' + str(start) + '\n')
-
     print('generating key pair...')
+    
     public_key, private_key = paillier.generate_paillier_keypair()
+    
     print('...key pair complete\n')
+    
+    
+    queries = ''
 
     
-    if f:
-        try:
-        #if True:
-            #with open(f, 'r') as queries_file:
-            #    text = queries_file.read()
-            #    queries = text.splitlines()
-            #queries_file.close()
-            
-            #queries = list(SeqIO.parse(f, "fasta"))
-            
-            queries = ''
-
-            with open(f, "r") as handle:
-                for record in SeqIO.parse(handle, "fasta"):
-                    queries += str(record.seq)
+    with open(f, "r") as handle:
+        for record in SeqIO.parse(handle, "fasta"):
+            queries += str(record.seq)
         
-        except:
-            print("Requires a text file with the queries.")
-            sys.exit(2)
+        
+    q_start = time.time()
+    seq = queries
 
-            
-        #for query_sequence in queries:
-        #if query_sequence:
-        if queries:
-                q_start = time.time()
-                #seq = str(query_sequence.seq)
-                seq = queries
-                print("Query: ", seq.upper()[:1000], "\n")
-                
-                #gene, max_iou, max_ioLquery, max_ioLresult = query(seq, public_key, private_key)
-                max_iou, max_ioLquery, max_ioLresult = query(seq, public_key, private_key)
-                                
-                q_end = time.time()
-                q_elapsed = q_end - q_start
-                
-                print('Query run time: ' + str(q_elapsed) + '\n')
-                print("Best IoU: ", max_iou, '\n')
-                print("Best IoLenQuery: ", max_ioLquery, '\n')
-                print("Best IoLenResult: ", max_ioLresult, '\n') 
-                #print("Sequence: ", gene.sequence, "\n")
-                
-                print("---------------------------------------------\n")    
-    else:
-        print("Enter query: ")
-        for query_sequence in sys.stdin:
-            gene, max_iou, max_ioLquery, max_ioLresult = query(query_sequence, public_key, private_key)
-            print("Best IoU: ", max_iou, '\n')
-            print("Best IoLenQuery: ", max_ioLquery, '\n')
-            print("Best IoLenResult: ", max_ioLresult, '\n')            
-            print("Sequence: ", gene.sequence, "\n")
-            print("Enter query: ")
+    
+    print("Query: ", seq.upper(), "\n")
+
+    
+    max_iou, max_ioLquery, max_ioLresult, best_seq = query(seq, public_key, private_key, dev = dev, data_dir = d)
+
+    
+    q_end = time.time()
+    q_elapsed = q_end - q_start
+
+    
+    print('Query run time: ' + str(q_elapsed) + '\n')
+    print("Best IoU: ", max_iou)
+    print("Best IoLenQuery: ", max_ioLquery)
+    print("Best IoLenResult: ", max_ioLresult, '\n') 
+    print("Sequence: ", best_seq)
+    print("---------------------------------------------\n")    
 
             
     end = time.time()
     print('End time: ' + str(end))
     elapsed = end - start
-    print('Time elapsed: ' + str(elapsed))
+    print('Time elapsed (min): ' + str(float(elapsed)/60))
 
 
 ####################
 # Query a database with a query and public key and decrypt using a private key
 ####################
-def query(query, public_key, private_key):
+def query(query, public_key, private_key, dev, data_dir):
     """Encodes a query and searches for it in the data base.
 
     Args:
@@ -113,46 +93,47 @@ def query(query, public_key, private_key):
     global num_cores
 
     print("encoding query...")
+    
     query = encode(query)
+    
     print('Length of query BF: ' + str(len(query)))
     print("...encode complete")
 
     query_mag = magnitude(query)
 
+    
+    # Encrypting query
     print("encrypting query...")
-    #query = [public_key.encrypt(x) for x in query]
+    
+    encrypt_start = time.time()
+    
     query = Parallel(n_jobs=num_cores)(delayed(public_key.encrypt)(x) for x in query)
     
-    print("...encrypt complete")
+    encrypt_end = time.time()
+    
+    print("...encrypt complete: Encrypt time (min) = %s" % str(float(encrypt_end - encrypt_start)/60))
     print("generating scores...")
     
-    scores = search(query)
+    scores = search(query, dev = dev, data_dir = data_dir)
     
     print("...scores complete")
-
     print("performing search...")
     
     max_iou = 0
     best_id = 0
-    
+    best_seq = ''
     result_scores = Parallel(n_jobs=num_cores)(delayed(calc_iou)(id_, private_key, query_mag) for id_ in scores)
     
     for score_set in result_scores:
-        if score_set[0] > max_iou:
-            #max_iou = score_set[0]
-            #best_id = score_set[1]
-            #max_ioLquery = score_set[2]
-            #max_ioLresult = score_set[3]   
+        if score_set[0] >= max_iou: 
             max_iou = score_set[0]
             max_ioLquery = score_set[1]
             max_ioLresult = score_set[2]  
-    
-    #gene = get_gene(best_id)
-
+            best_seq = score_set[3]
+            
     print("...search complete \n")
-
-    #return gene, max_iou, max_ioLquery, max_ioLresult
-    return max_iou, max_ioLquery, max_ioLresult
+    
+    return (max_iou, max_ioLquery, max_ioLresult, best_seq)
 
 
 ####################
@@ -160,10 +141,9 @@ def query(query, public_key, private_key):
 ####################
 def calc_iou(id_, private_key, query_mag):
     intersection = private_key.decrypt(id_[0])
-    result_iou, max_ioLquery, max_ioLresult = iou(intersection, id_[1], query_mag)
+    Iou, IoLquery, IoLresult = iou(intersection, id_[1], query_mag)
     
-    #return result_iou, id_[2], max_ioLquery, max_ioLresult
-    return result_iou, max_ioLquery, max_ioLresult
+    return (Iou, IoLquery, IoLresult, id_[2])
 
 
 ####################
@@ -193,8 +173,5 @@ def iou(intersection, data_mag, query_mag):
 # Main
 ####################
 if __name__ == '__main__':
-    if(len(sys.argv) > 1):
-        main(sys.argv[1])
-    else:
-        main()
+    main(sys.argv[1], sys.argv[2])
     sys.exit(0)
