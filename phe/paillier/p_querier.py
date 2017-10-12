@@ -1,5 +1,7 @@
-"""Queries the database for specific genes."""
+"""This is the primary code document for the execution of this workflow.
+Queries the database for specific genes."""
 
+# Load our packages for the environment
 import sys
 import time
 from joblib import Parallel, delayed
@@ -11,7 +13,7 @@ from Bio import SeqIO
 
 paillier.invert = invert
 num_cores = 48 # Number of cores for parellel processing
-
+query_len = 50000000
 
 ####################
 # Main function to run pipeline
@@ -23,23 +25,26 @@ def main(f, d, dev = False):
     Note: queries from standard in have a maximum of 1023 characters.
 
     Args:
-        f: A text file containing queries. Each query should be on its own line.
+        f: A FASTA file containing a query. 
         d: A path do a directory with FASTA files to act as the database to search
         dev: a boolean indicator, if True, runs the pipeline on only the first 
              entry in a data set rather than the whole set. 
     """
+    global query_len
+    
     start = time.time()
     
     print('\nStart time: ' + str(start) + '\n')
     print('generating key pair...')
     
+    # Create the encryption public and private key pair
     public_key, private_key = paillier.generate_paillier_keypair()
     
     print('...key pair complete\n')
     
     
+    # Build the query by concatenating the entries in a FASTA file together
     queries = ''
-
     
     with open(f, "r") as handle:
         for record in SeqIO.parse(handle, "fasta"):
@@ -48,12 +53,12 @@ def main(f, d, dev = False):
         
     q_start = time.time()
     seq = queries
+    seq = seq[:query_len]
+    
+    print("Query: ", seq.upper()[:1000], "\n")
 
     
-    print("Query: ", seq.upper(), "\n")
-
-    
-    max_iou, max_ioLquery, max_ioLresult, best_seq = query(seq, public_key, private_key, dev = dev, data_dir = d)
+    max_iou, max_ioLquery, max_ioLresult, best_seq, best_mag = query(seq, public_key, private_key, dev = dev, data_dir = d)
 
     
     q_end = time.time()
@@ -61,10 +66,13 @@ def main(f, d, dev = False):
 
     
     print('Query run time: ' + str(q_elapsed) + '\n')
+    print('Length of query: %s' % str(len(seq)), '\n')
     print("Best IoU: ", max_iou)
     print("Best IoLenQuery: ", max_ioLquery)
     print("Best IoLenResult: ", max_ioLresult, '\n') 
-    print("Sequence: ", best_seq)
+    print('Length of result: %s' % str(len(best_seq)), '\n')
+    
+    print("Sequence: ", best_seq[:1000])
     print("---------------------------------------------\n")    
 
             
@@ -97,7 +105,7 @@ def query(query, public_key, private_key, dev, data_dir):
     query = encode(query)
     
     print('Length of query BF: ' + str(len(query)))
-    print("...encode complete")
+    print("...encode complete\n")
 
     query_mag = magnitude(query)
 
@@ -108,7 +116,7 @@ def query(query, public_key, private_key, dev, data_dir):
     encrypt_start = time.time()
     
     query = Parallel(n_jobs=num_cores)(delayed(public_key.encrypt)(x) for x in query)
-    
+
     encrypt_end = time.time()
     
     print("...encrypt complete: Encrypt time (min) = %s" % str(float(encrypt_end - encrypt_start)/60))
@@ -130,10 +138,11 @@ def query(query, public_key, private_key, dev, data_dir):
             max_ioLquery = score_set[1]
             max_ioLresult = score_set[2]  
             best_seq = score_set[3]
+            result_mag = score_set[4]
             
     print("...search complete \n")
     
-    return (max_iou, max_ioLquery, max_ioLresult, best_seq)
+    return max_iou, max_ioLquery, max_ioLresult, best_seq, result_mag
 
 
 ####################
@@ -143,7 +152,7 @@ def calc_iou(id_, private_key, query_mag):
     intersection = private_key.decrypt(id_[0])
     Iou, IoLquery, IoLresult = iou(intersection, id_[1], query_mag)
     
-    return (Iou, IoLquery, IoLresult, id_[2])
+    return Iou, IoLquery, IoLresult, id_[2], id_[1]
 
 
 ####################

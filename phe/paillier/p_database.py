@@ -16,6 +16,7 @@ from p_bloom_filter import encode
 
 data_directory = None
 num_cores = 48 # Number of cores for parellel processing
+seq_len = 50000000
 
 ####################
 # Search for a query in a "database"
@@ -38,10 +39,14 @@ def search(query, dev, data_dir):
     data_directory = data_dir
         
     data = os.listdir(data_directory)
+    
     print('\nFound %s entries in database\n' % str(len(data)))
 
     if dev:
         data = data[0]
+    
+    #data = data[:1000]    
+    print('Using %s entries from database\n' % str(len(data)))
     
     scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
     
@@ -53,6 +58,7 @@ def search(query, dev, data_dir):
 ####################
 def gen_scores(id_, query):
     global data_directory
+    global seq_len
     
     seq_file = os.path.join(data_directory, id_)
     
@@ -62,12 +68,11 @@ def gen_scores(id_, query):
         for record in SeqIO.parse(handle, "fasta"):
             entry_seq += str(record.seq)
     
+    entry_seq = entry_seq[:seq_len]
+    
     entry_bloom = encode(entry_seq)
     
-    if len(entry_seq) < 5000:
-        seq_code = entry_seq
-    else:
-        seq_code = entry_seq[:1000]
+    seq_code = entry_seq
     
     return (dotproduct(entry_bloom, query), magnitude(entry_bloom), seq_code)
     

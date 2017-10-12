@@ -1,16 +1,15 @@
 """Bloom filter for genetic sequences. Stored as unsigned character array."""
 
 import sys
-
 from array import array
 from collections import defaultdict
 
 #BLOOM FILTER DEFAULTS
 # Information calculated from https://krisives.github.io/bloom-calculator/
-K = 16
+K = 1000
 H = hash
 HASH_MAX = sys.maxsize + 1
-SIZE = 12000
+SIZE = 70000
 
 def encode(gene, size=SIZE, k=K, h=H):
     """Creates a bloom filter. Used to encode a genetic sequence.
@@ -35,7 +34,7 @@ def encode(gene, size=SIZE, k=K, h=H):
     gene = gene.upper()                         # Make gene all uppercase.
 
     # Loop through all k-mers for gene.
-    for n in range(0, len(gene)-k + 1):
+    for n in range(0, len(gene)-k + 1, k):
         # Get k-mer of length k and hash it.
         k_mer = gene[n:n + k]                   # TODO: ignore case, 'N's?
         k_hash = (h(k_mer) + HASH_MAX) % size   # Make hash positive and within
