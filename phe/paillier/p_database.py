@@ -16,12 +16,12 @@ from p_bloom_filter import encode
 
 data_directory = None
 num_cores = 48 # Number of cores for parellel processing
-seq_len = 50000000
+seq_len = 20000
 
 ####################
 # Search for a query in a "database"
 ####################
-def search(query, dev, data_dir):
+def search(query, data_dir):
     """Searches the database for the 'best match' to the given query. Returns
     relevent information to find the IOU scores of all the genes in the database
     in order to determine the 'best match'
@@ -40,13 +40,10 @@ def search(query, dev, data_dir):
         
     data = os.listdir(data_directory)
     
-    print('\nFound %s entries in database\n' % str(len(data)))
-
-    if dev:
-        data = data[0]
+    #print('\nFound %s entries in database\n' % str(len(data)))
     
-    #data = data[:1000]    
-    print('Using %s entries from database\n' % str(len(data)))
+    #data = data[:20]
+    #print('Using %s entries from database\n' % str(len(data)))
     
     scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
     

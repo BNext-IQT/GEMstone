@@ -13,7 +13,7 @@ from Bio import SeqIO
 
 paillier.invert = invert
 num_cores = 48 # Number of cores for parellel processing
-query_len = 50000000
+query_len = 20000
 
 ####################
 # Main function to run pipeline
@@ -59,28 +59,30 @@ def main(f, d, dev = False):
 
     
     max_iou, max_ioLquery, max_ioLresult, best_seq, best_mag = query(seq, public_key, private_key, dev = dev, data_dir = d)
-
+    
     
     q_end = time.time()
     q_elapsed = q_end - q_start
 
     
     print('Query run time: ' + str(q_elapsed) + '\n')
+    print('Length of result: %s' % str(len(best_seq)))
     print('Length of query: %s' % str(len(seq)), '\n')
     print("Best IoU: ", max_iou)
     print("Best IoLenQuery: ", max_ioLquery)
     print("Best IoLenResult: ", max_ioLresult, '\n') 
-    print('Length of result: %s' % str(len(best_seq)), '\n')
     
     print("Sequence: ", best_seq[:1000])
     print("---------------------------------------------\n")    
-
             
     end = time.time()
     print('End time: ' + str(end))
     elapsed = end - start
     print('Time elapsed (min): ' + str(float(elapsed)/60))
-
+    
+    out = str([max_iou, max_ioLquery, max_ioLresult, q_elapsed, seq[:2000], best_seq][:2000])+'\n'
+    with open("results.txt", "a") as myfile:
+        myfile.write(out)
 
 ####################
 # Query a database with a query and public key and decrypt using a private key
@@ -122,7 +124,7 @@ def query(query, public_key, private_key, dev, data_dir):
     print("...encrypt complete: Encrypt time (min) = %s" % str(float(encrypt_end - encrypt_start)/60))
     print("generating scores...")
     
-    scores = search(query, dev = dev, data_dir = data_dir)
+    scores = search(query, data_dir = data_dir)
     
     print("...scores complete")
     print("performing search...")

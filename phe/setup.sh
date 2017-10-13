@@ -8,6 +8,7 @@ pip install phe
 pip install biopython
 pip install ncbi-genome-download
 pip install joblib
+pip install ggplot
 
 git config --global user.email "alexander.j.titus.gr@dartmouth.edu"
 git config --global user.name "AlexanderTitus"

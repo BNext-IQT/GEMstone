@@ -6,10 +6,10 @@ from collections import defaultdict
 
 #BLOOM FILTER DEFAULTS
 # Information calculated from https://krisives.github.io/bloom-calculator/
-K = 1000
+K = 16
 H = hash
 HASH_MAX = sys.maxsize + 1
-SIZE = 70000
+SIZE = 100000
 
 def encode(gene, size=SIZE, k=K, h=H):
     """Creates a bloom filter. Used to encode a genetic sequence.
@@ -34,7 +34,7 @@ def encode(gene, size=SIZE, k=K, h=H):
     gene = gene.upper()                         # Make gene all uppercase.
 
     # Loop through all k-mers for gene.
-    for n in range(0, len(gene)-k + 1, k):
+    for n in range(0, len(gene)-k + 1):
         # Get k-mer of length k and hash it.
         k_mer = gene[n:n + k]                   # TODO: ignore case, 'N's?
         k_hash = (h(k_mer) + HASH_MAX) % size   # Make hash positive and within
