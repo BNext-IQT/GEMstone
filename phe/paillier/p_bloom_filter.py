@@ -6,7 +6,7 @@ from collections import defaultdict
 
 #BLOOM FILTER DEFAULTS
 # Information calculated from https://krisives.github.io/bloom-calculator/
-K = 16
+K = 8
 H = hash
 HASH_MAX = sys.maxsize + 1
 SIZE = 100000
@@ -44,6 +44,7 @@ def encode(gene, size=SIZE, k=K, h=H):
         bf[k_hash] = 1
 
     return bf
+
 
 def initialize_bloom_filter(size=SIZE):
     """ Creates empty bloom filter.

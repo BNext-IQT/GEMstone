@@ -40,10 +40,10 @@ def search(query, data_dir):
         
     data = os.listdir(data_directory)
     
-    #print('\nFound %s entries in database\n' % str(len(data)))
+    print('\nFound %s entries in database\n' % str(len(data)))
     
-    #data = data[:20]
-    #print('Using %s entries from database\n' % str(len(data)))
+    data = data[:7000]
+    print('Using %s entries from database\n' % str(len(data)))
     
     scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
     
@@ -88,8 +88,11 @@ def dotproduct(v1, v2):
     Returns:
         The dot product of the two vectors.
     """
-
-    dot = sum([v2[i] for i,_ in enumerate(v1) if v1[i] == 1])
+    v1_array = np.asarray(v1)
+    v2_array = np.asarray(v2)
+    #dot = sum([v2[i] for i,_ in enumerate(v1) if v1[i] == 1])
+    dot = np.dot(v1_array, v2_array)
+    
     return dot
 
 
