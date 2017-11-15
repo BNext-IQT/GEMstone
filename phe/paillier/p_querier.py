@@ -13,7 +13,7 @@ from Bio import SeqIO
 
 paillier.invert = invert
 num_cores = 48 # Number of cores for parellel processing
-query_len = 20000
+query_len = 100
 
 ####################
 # Main function to run pipeline

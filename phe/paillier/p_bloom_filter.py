@@ -8,10 +8,10 @@ from collections import defaultdict
 # Information calculated from https://krisives.github.io/bloom-calculator/
 K = 8
 H = hash
-HASH_MAX = sys.maxsize + 1
-SIZE = 100000
+#HASH_MAX = sys.maxsize + 1
+SIZE = 500
 
-def encode(gene, size=SIZE, k=K, h=H):
+def encode(gene, size=SIZE, k=K, h=H, HASH_MAX=sys.maxsize + 1):
     """Creates a bloom filter. Used to encode a genetic sequence.
 
     Args:

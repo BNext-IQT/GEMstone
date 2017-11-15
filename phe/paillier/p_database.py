@@ -16,7 +16,7 @@ from p_bloom_filter import encode
 
 data_directory = None
 num_cores = 48 # Number of cores for parellel processing
-seq_len = 5000
+seq_len = 100
 
 ####################
 # Search for a query in a "database"
@@ -42,7 +42,7 @@ def search(query, data_dir):
     
     print('\nFound %s entries in database\n' % str(len(data)))
     
-    data = data[:50]
+    data = data[:500]
     print('Using %s entries from database\n' % str(len(data)))
     
     scores = Parallel(n_jobs=num_cores)(delayed(gen_scores)(id_, query) for id_ in data)
