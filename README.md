@@ -11,3 +11,4 @@ If you have any questions, [contact us for questions](https://www.bnext.org/cont
 - [Blog Description and Early Results](https://medium.com/bioquest/gemstone-series-secure-information-sharing-for-genetic-queries-early-results-a14e79bb4f57)
 - [SIG-DB on arXiv](https://arxiv.org/abs/1803.09565)
 - [PySEAL on arXiv](https://arxiv.org/abs/1803.01891)
+- [Final Code Release](https://github.com/BNext-IQT/GEMstone/releases/tag/3.0)
