@@ -4,7 +4,7 @@ SIG-DB is an algorithm developed to search privately held genomic databases usin
 
 The algorithm code is hosted in the Python notebook named [main_define_classes.ipynb](https://github.com/BNext-IQT/GEMstone/blob/master/phe/paillier/main_define_classes.ipynb). There are two code blocks that execute the PHE and FHE versions of the algorithms, and classes defined for each algorithm below. 
 
-If you have any questions, [contact us for questions](https://www.bnext.org/contact/).
+If you have any questions, [contact us for questions](https://www.bnext.org/contact/). If you would like more detail about the implementation, please read our arXiv manuscript. 
 
 **Manuscript Abstract:** Genomic data are becoming increasingly valuable as we develop methods to utilize the information at scale and gain a greater understanding of how genetic information relates to biological function. Advances in synthetic biology and the decreased cost of sequencing are increasing the amount of privately held genomic data. As the quantity and value of private genomic data grows, so does the incentive to acquire and protect such data, which creates a need to store and process these data securely. We present an algorithm for the Secure Interrogation of Genomic DataBases (SIG-DB). The SIG-DB algorithm enables databases of genomic sequences to be searched with an encrypted query sequence without revealing the query sequence to the Database Owner or any of the database sequences to the Querier. SIG-DB is the first application of its kind to take advantage of locality-sensitive hashing and homomorphic encryption to allow generalized sequence-to-sequence comparisons of genomic data. 
 
